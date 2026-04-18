@@ -23,3 +23,4 @@ async function registerSW() {
 
 	await navigator.serviceWorker.register(stockSW);
 }
+registerSW().catch(console.error);
