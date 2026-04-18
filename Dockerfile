@@ -1,20 +1,26 @@
 FROM node:18-alpine
 
-ENV NODE_ENV=production
-ARG NPM_BUILD="npm install --omit=dev"
-EXPOSE 8080/tcp
-
-LABEL maintainer="Mercury Workshop"
-LABEL summary="Scramjet Demo Image"
-LABEL description="Example application of Scramjet"
+# 1. Install build essentials and pnpm
+# Alpine needs these for certain JS packages that compile C++ code
+RUN apk add --no-cache python3 make g++ && \
+    npm install -g pnpm
 
 WORKDIR /app
 
-COPY ["package.json", "package-lock.json", "./"]
-RUN apk add --upgrade --no-cache python3 make g++
-RUN $NPM_BUILD
+# 2. Copy dependency files first (better caching)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
+# 3. Install dependencies using pnpm
+# This ensures it respects your lockfile
+RUN pnpm install --frozen-lockfile
+
+# 4. Copy the rest of the source code
 COPY . .
 
-ENTRYPOINT [ "node" ]
-CMD ["src/index.js"]
+# 5. Koyeb/Production Setup
+ENV NODE_ENV=production
+# Koyeb usually expects port 8080 by default, ensure your src/index.js matches this
+EXPOSE 8080
+
+# 6. Execution
+CMD ["node", "src/index.js"]
